@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout='wide', page_title='StartUp Analysis')
 df = pd.read_csv('startup_cleaned.csv')
 df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
+df['month'] = df['date'].dt.month
+df['year'] = df['date'].dt.year
+st.markdown("""###### Data is not properly cleaned up and we are working on it. Some of investors and startup comes multiple times. So when data properly clean up you can found exact output """)
 
 def load_investor_details(investor):
     st.title(investor)
@@ -53,7 +55,34 @@ def load_investor_details(investor):
 
 def load_overall_analysis():
     st.title('Overall Analysis')
-    st.metric('Total Investments', round(df['amount'].sum()))
+    t_amount = round(df['amount'].sum())
+    col1,col2,col3,col4 = st.columns(4)
+    with col1:
+        t_amount = round(df['amount'].sum())
+        st.metric('Total', str(t_amount) + " CR")
+    with col2:
+        max_amount = df.groupby('startup')['amount'].max().sort_values(ascending=False).head(1).values[0]
+        st.metric('Max', str(round(max_amount) )+ " CR")
+    with col3:
+        avg_amount = df.groupby('startup')['amount'].sum().mean()
+        st.metric('Avg', str(round(avg_amount)) + " CR")
+    with col4:
+        num_strup = df['startup'].nunique()
+        st.metric('Funded StartUp', str(round(num_strup)) + "")
+    st.header('MoM Graph')
+    bt1 = st.selectbox('Select Type',['Total','Count'])
+    temp_df = {}
+    if bt1 == 'Total':
+        temp_df = df.groupby(['year', 'month'])['amount'].sum().reset_index()
+    else:
+        temp_df = df.groupby(['year', 'month'])['amount'].count().reset_index()
+
+    temp_df['x_axis'] = temp_df['month'].astype('str') + '-' + temp_df['year'].astype('str')
+    fig3, ax3 = plt.subplots()
+    ax3.plot(temp_df['x_axis'],temp_df['amount'])
+    st.pyplot(fig3)
+
+
 
 
 st.sidebar.title('Startup Funding Analysis')
@@ -61,9 +90,7 @@ st.sidebar.title('Startup Funding Analysis')
 option = st.sidebar.selectbox('Select One', ['Overall Analysis', 'StartUp', 'Investor'])
 
 if option == 'Overall Analysis':
-    oa_btn = st.sidebar.button('Show overall analysis')
-    if oa_btn:
-        load_overall_analysis()
+    load_overall_analysis()
 elif option == 'StartUp':
     st.sidebar.selectbox('Select StartUp', sorted(df['startup'].unique().tolist()))
     startup_btn = st.sidebar.button('Find StartUp Details')
